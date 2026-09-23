@@ -1,4 +1,14 @@
-import type { Conclusion, PullRequest, Workflow, WorkflowRun } from '../domain/types';
+import { describeOwnPullRequest } from '../domain/own-pull-requests';
+import type {
+  Conclusion,
+  MergeGate,
+  OwnPullRequest,
+  OwnPullRequestFacts,
+  PullRequest,
+  RunFailure,
+  Workflow,
+  WorkflowRun,
+} from '../domain/types';
 
 /**
  * Sample fleet used until GITHUB_TOKEN is set.
@@ -33,6 +43,15 @@ function mkRuns(
 }
 
 const repeat = (c: Conclusion, n: number): Conclusion[] => Array.from({ length: n }, () => c);
+
+/** Attach where each of the newest runs broke, as the jobs lookup would. */
+const withFailures = (runs: WorkflowRun[], failures: RunFailure[]): WorkflowRun[] =>
+  runs.map((run, i) => (failures[i] ? { ...run, failure: failures[i] } : run));
+
+const brokeAt = (job: string, step: string, number: number, of: number): RunFailure => ({
+  jobs: [job],
+  step: { job, step, number, of },
+});
 const S: Conclusion = 'success';
 const F: Conclusion = 'failure';
 
@@ -46,7 +65,10 @@ export const mockWorkflows: Workflow[] = [
     cron: '0 3 * * *',
     defaultBranch: 'main',
     // Failing every night for over a month, with nobody watching.
-    runs: mkRuns(repeat(F, 34), DAY, 6 * HOUR, 'schedule'),
+    runs: withFailures(
+      mkRuns(repeat(F, 34), DAY, 6 * HOUR, 'schedule'),
+      repeat(F, 3).map(() => brokeAt('deploy', 'terraform apply', 5, 8)),
+    ),
     alertRuleCount: 0,
   },
   {
@@ -57,7 +79,14 @@ export const mockWorkflows: Workflow[] = [
     state: 'active',
     cron: null,
     defaultBranch: 'main',
-    runs: mkRuns([...repeat(F, 12), ...repeat(S, 6)], 2 * DAY, 8 * HOUR, 'release'),
+    runs: withFailures(
+      mkRuns([...repeat(F, 12), ...repeat(S, 6)], 2 * DAY, 8 * HOUR, 'release'),
+      [
+        brokeAt('publish', 'Publish to registry', 6, 7),
+        brokeAt('publish', 'Publish to registry', 6, 7),
+        brokeAt('publish', 'Set up job', 1, 7),
+      ],
+    ),
     alertRuleCount: 0,
   },
   {
@@ -80,7 +109,12 @@ export const mockWorkflows: Workflow[] = [
     state: 'active',
     cron: null,
     defaultBranch: 'main',
-    runs: mkRuns([...repeat(F, 5), ...repeat(S, 9)], 9 * HOUR, 22 * MINUTE),
+    // A required check, red at a different step each time.
+    runs: withFailures(mkRuns([...repeat(F, 5), ...repeat(S, 9)], 9 * HOUR, 22 * MINUTE), [
+      brokeAt('test (node 20)', 'Set up job', 1, 6),
+      brokeAt('test (node 20)', 'npm ci', 3, 6),
+      brokeAt('test (node 20)', 'Run tests', 5, 6),
+    ]),
     alertRuleCount: 2,
   },
   {
@@ -168,7 +202,10 @@ export const mockWorkflows: Workflow[] = [
     state: 'active',
     cron: null,
     defaultBranch: 'main',
-    runs: mkRuns([...repeat(F, 4), ...repeat(S, 10)], 12 * HOUR, 20 * HOUR),
+    runs: withFailures(
+      mkRuns([...repeat(F, 4), ...repeat(S, 10)], 12 * HOUR, 20 * HOUR),
+      [brokeAt('deploy', 'Set up job', 1, 9)],
+    ),
     alertRuleCount: 2,
   },
 ];
@@ -184,6 +221,8 @@ export const mockPullRequests: PullRequest[] = [
     createdAt: new Date(Date.now() - 9 * DAY).toISOString(),
     updatedAt: new Date(Date.now() - 2 * DAY).toISOString(),
     reviewRequestedAt: new Date(Date.now() - 9 * DAY).toISOString(),
+    requestedVia: { kind: 'team', slug: 'platform-reviewers' },
+    reRequested: false,
     additions: 248,
     deletions: 31,
     changedFiles: 12,
@@ -197,9 +236,12 @@ export const mockPullRequests: PullRequest[] = [
     repo: 'acme-corp/web-app',
     author: 'm.duarte',
     htmlUrl: '#',
-    createdAt: new Date(Date.now() - 4 * DAY).toISOString(),
+    // Opened three weeks ago, but only asked of you four days ago.
+    createdAt: new Date(Date.now() - 21 * DAY).toISOString(),
     updatedAt: new Date(Date.now() - 6 * HOUR).toISOString(),
     reviewRequestedAt: new Date(Date.now() - 4 * DAY).toISOString(),
+    requestedVia: { kind: 'user', login: 'you' },
+    reRequested: true,
     additions: 612,
     deletions: 204,
     changedFiles: 28,
@@ -216,6 +258,8 @@ export const mockPullRequests: PullRequest[] = [
     createdAt: new Date(Date.now() - 1 * DAY).toISOString(),
     updatedAt: new Date(Date.now() - 1 * HOUR).toISOString(),
     reviewRequestedAt: new Date(Date.now() - 1 * DAY).toISOString(),
+    requestedVia: { kind: 'team', slug: 'payments-reviewers' },
+    reRequested: false,
     additions: 96,
     deletions: 12,
     changedFiles: 5,
@@ -232,6 +276,8 @@ export const mockPullRequests: PullRequest[] = [
     createdAt: new Date(Date.now() - 34 * DAY).toISOString(),
     updatedAt: new Date(Date.now() - 6 * HOUR).toISOString(),
     reviewRequestedAt: new Date(Date.now() - 34 * DAY).toISOString(),
+    requestedVia: null,
+    reRequested: false,
     additions: 14,
     deletions: 8,
     changedFiles: 2,
@@ -248,6 +294,8 @@ export const mockPullRequests: PullRequest[] = [
     createdAt: new Date(Date.now() - 3 * DAY).toISOString(),
     updatedAt: new Date(Date.now() - 2 * HOUR).toISOString(),
     reviewRequestedAt: new Date(Date.now() - 3 * DAY).toISOString(),
+    requestedVia: null,
+    reRequested: false,
     additions: 180,
     deletions: 22,
     changedFiles: 7,
@@ -264,6 +312,8 @@ export const mockPullRequests: PullRequest[] = [
     createdAt: new Date(Date.now() - 18 * DAY).toISOString(),
     updatedAt: new Date(Date.now() - 11 * DAY).toISOString(),
     reviewRequestedAt: new Date(Date.now() - 18 * DAY).toISOString(),
+    requestedVia: null,
+    reRequested: false,
     additions: 88,
     deletions: 4,
     changedFiles: 3,
@@ -280,6 +330,8 @@ export const mockPullRequests: PullRequest[] = [
     createdAt: new Date(Date.now() - 12 * DAY).toISOString(),
     updatedAt: new Date(Date.now() - 3 * DAY).toISOString(),
     reviewRequestedAt: new Date(Date.now() - 12 * DAY).toISOString(),
+    requestedVia: null,
+    reRequested: false,
     additions: 320,
     deletions: 140,
     changedFiles: 16,
@@ -296,6 +348,8 @@ export const mockPullRequests: PullRequest[] = [
     createdAt: new Date(Date.now() - 14 * DAY).toISOString(),
     updatedAt: new Date(Date.now() - 8 * DAY).toISOString(),
     reviewRequestedAt: new Date(Date.now() - 14 * DAY).toISOString(),
+    requestedVia: null,
+    reRequested: false,
     additions: 44,
     deletions: 12,
     changedFiles: 4,
@@ -312,6 +366,8 @@ export const mockPullRequests: PullRequest[] = [
     createdAt: new Date(Date.now() - 10 * DAY).toISOString(),
     updatedAt: new Date(Date.now() - 5 * DAY).toISOString(),
     reviewRequestedAt: new Date(Date.now() - 10 * DAY).toISOString(),
+    requestedVia: null,
+    reRequested: false,
     additions: 22,
     deletions: 410,
     changedFiles: 9,
@@ -328,6 +384,8 @@ export const mockPullRequests: PullRequest[] = [
     createdAt: new Date(Date.now() - 6 * DAY).toISOString(),
     updatedAt: new Date(Date.now() - 3 * DAY).toISOString(),
     reviewRequestedAt: new Date(Date.now() - 6 * DAY).toISOString(),
+    requestedVia: null,
+    reRequested: false,
     additions: 6,
     deletions: 6,
     changedFiles: 1,
@@ -336,3 +394,107 @@ export const mockPullRequests: PullRequest[] = [
     state: 'approved-unmerged',
   },
 ];
+
+export const mockGates: MergeGate[] = [
+  {
+    repo: 'acme-corp/billing-svc',
+    branch: 'main',
+    requiredChecks: ['test (node 20)', 'lint'],
+    readable: 'full',
+  },
+  { repo: 'acme-corp/payments-api', branch: 'main', requiredChecks: ['build'], readable: 'full' },
+  { repo: 'acme-corp/web-app', branch: 'main', requiredChecks: ['ci', 'e2e'], readable: 'full' },
+  { repo: 'acme-corp/platform-core', branch: 'main', requiredChecks: [], readable: 'full' },
+  { repo: 'acme-corp/infra-terraform', branch: 'main', requiredChecks: [], readable: 'none' },
+  { repo: 'acme-corp/design-tokens', branch: 'main', requiredChecks: [], readable: 'partial' },
+];
+
+const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
+
+/** Raw facts, classified by the same function the live data goes through. */
+const ownPullRequestFacts: OwnPullRequestFacts[] = [
+  {
+    number: 420,
+    title: 'Add per-repo alert rules to the fleet view',
+    repo: 'acme-corp/platform-core',
+    htmlUrl: '#',
+    createdAt: ago(8 * DAY),
+    headCommittedAt: ago(6 * DAY),
+    checksState: 'success',
+    failingCheck: null,
+    reviewDecision: 'APPROVED',
+    reviews: [
+      { author: 'j.park', state: 'APPROVED', at: ago(5 * DAY) },
+      { author: 's.mehta', state: 'APPROVED', at: ago(5 * DAY) },
+    ],
+    pending: [],
+    requestEvents: [],
+  },
+  {
+    number: 1190,
+    title: 'Retry font loads on slow networks',
+    repo: 'acme-corp/web-app',
+    htmlUrl: '#',
+    createdAt: ago(6 * DAY),
+    headCommittedAt: ago(4 * DAY),
+    checksState: 'success',
+    failingCheck: null,
+    reviewDecision: 'CHANGES_REQUESTED',
+    reviews: [{ author: 'm.duarte', state: 'CHANGES_REQUESTED', at: ago(2 * DAY) }],
+    pending: [],
+    requestEvents: [{ at: ago(5 * DAY), reviewer: { kind: 'user', login: 'm.duarte' } }],
+  },
+  {
+    number: 510,
+    title: 'Batch workflow YAML fetches per repository',
+    repo: 'acme-corp/payments-api',
+    htmlUrl: '#',
+    createdAt: ago(1 * DAY),
+    headCommittedAt: ago(1 * DAY),
+    checksState: 'failure',
+    failingCheck: 'typecheck',
+    reviewDecision: 'REVIEW_REQUIRED',
+    reviews: [],
+    pending: [{ kind: 'team', slug: 'platform-reviewers' }],
+    requestEvents: [
+      { at: ago(1 * DAY), reviewer: { kind: 'team', slug: 'platform-reviewers' } },
+    ],
+  },
+  {
+    number: 83,
+    title: 'Cache repository metadata between syncs',
+    repo: 'acme-corp/billing-svc',
+    htmlUrl: '#',
+    createdAt: ago(6 * DAY),
+    headCommittedAt: ago(6 * DAY),
+    checksState: 'success',
+    failingCheck: null,
+    reviewDecision: 'REVIEW_REQUIRED',
+    reviews: [],
+    pending: [{ kind: 'team', slug: 'payments-reviewers' }],
+    requestEvents: [
+      { at: ago(6 * DAY), reviewer: { kind: 'team', slug: 'payments-reviewers' } },
+    ],
+  },
+  {
+    number: 505,
+    title: 'Expose reconcile drift as a metric',
+    repo: 'acme-corp/payments-api',
+    htmlUrl: '#',
+    createdAt: ago(9 * DAY),
+    // Pushed after the change request, so it is back with the reviewers.
+    headCommittedAt: ago(1 * DAY),
+    checksState: 'success',
+    failingCheck: null,
+    reviewDecision: 'CHANGES_REQUESTED',
+    reviews: [{ author: 'j.park', state: 'CHANGES_REQUESTED', at: ago(3 * DAY) }],
+    pending: [{ kind: 'user', login: 'a.okafor' }],
+    requestEvents: [
+      { at: ago(8 * DAY), reviewer: { kind: 'user', login: 'a.okafor' } },
+      { at: ago(1 * DAY), reviewer: { kind: 'user', login: 'a.okafor' } },
+    ],
+  },
+];
+
+export const mockOwnPullRequests: OwnPullRequest[] =
+  ownPullRequestFacts.map(describeOwnPullRequest);

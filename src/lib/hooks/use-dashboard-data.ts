@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import { fetchFleet, fetchReviewQueue, isConfigured } from '../github';
-import { mockPullRequests, mockWorkflows } from '../mock';
-import type { PullRequest, Workflow } from '../domain/types';
+import { fetchFleet, fetchOwnPullRequests, fetchReviewQueue, isConfigured } from '../github';
+import { mockGates, mockOwnPullRequests, mockPullRequests, mockWorkflows } from '../mock';
+import type { MergeGate, OwnPullRequest, PullRequest, Workflow } from '../domain/types';
 
 /** GitHub's REST limit is 5,000/hr; polling this often stays well inside it. */
 export const REFRESH_MS = 120_000;
 
 export interface DashboardData {
   workflows: Workflow[];
+  gates: MergeGate[];
   pullRequests: PullRequest[];
+  ownPullRequests: OwnPullRequest[];
   /** False when we are showing the sample fleet because no token is configured. */
   live: boolean;
   error: string | null;
@@ -23,7 +25,9 @@ export interface DashboardData {
  */
 export function useDashboardData(repos: string[]): DashboardData {
   const [workflows, setWorkflows] = useState<Workflow[]>(mockWorkflows);
+  const [gates, setGates] = useState<MergeGate[]>(mockGates);
   const [pullRequests, setPullRequests] = useState<PullRequest[]>(mockPullRequests);
+  const [ownPullRequests, setOwnPullRequests] = useState<OwnPullRequest[]>(mockOwnPullRequests);
   const [live, setLive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [syncedAt, setSyncedAt] = useState(() => new Date());
@@ -39,9 +43,15 @@ export function useDashboardData(repos: string[]): DashboardData {
     }
 
     try {
-      const [fleet, queue] = await Promise.all([fetchFleet(list), fetchReviewQueue()]);
-      setWorkflows(fleet);
+      const [fleet, queue, own] = await Promise.all([
+        fetchFleet(list),
+        fetchReviewQueue(),
+        fetchOwnPullRequests(),
+      ]);
+      setWorkflows(fleet.workflows);
+      setGates(fleet.gates);
       setPullRequests(queue);
+      setOwnPullRequests(own);
       setLive(true);
       setError(null);
     } catch (e) {
@@ -61,5 +71,14 @@ export function useDashboardData(repos: string[]): DashboardData {
     return () => clearInterval(timer);
   }, [load]);
 
-  return { workflows, pullRequests, live, error, syncedAt, refresh: () => void load() };
+  return {
+    workflows,
+    gates,
+    pullRequests,
+    ownPullRequests,
+    live,
+    error,
+    syncedAt,
+    refresh: () => void load(),
+  };
 }

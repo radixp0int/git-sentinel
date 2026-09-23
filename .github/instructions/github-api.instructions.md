@@ -42,9 +42,19 @@ the queue.
 Search is 30 requests/minute, separate from the 5,000/hour REST pool. Prefer one
 GraphQL search over N REST calls when adding anything that spans repositories.
 
-`fetchWorkflows` already costs roughly `2 + 2n` requests per repository. Before
+A repository costs roughly `4 + 2n` requests: repo metadata, the workflow list,
+two for the merge gate, and runs plus the workflow file per workflow. Before
 adding another per-workflow call, consider whether it can be batched or derived
 from what is already fetched.
+
+Jobs are looked up only for the newest `FAILURE_SAMPLE` runs of a workflow's
+current failure streak, through the per-attempt endpoint, and cached by
+`repo#run#attempt` for the life of the page — a finished attempt never changes,
+so a failing workflow costs its lookups once, not on every poll.
+
+Review requests come from `timelineItems(REVIEW_REQUESTED_EVENT)` inside the
+existing searches, so the request time costs nothing extra. Your own pull
+requests are one more search (`author:@me draft:false`).
 
 ## Enterprise Server
 
@@ -52,3 +62,9 @@ from what is already fetched.
 from it in `vite.config.ts`. Two version floors worth remembering:
 `user-review-requested` needs GHE 3.4+, `statusCheckRollup` needs 3.2+. Guard
 new API surface the same way rather than assuming github.com behaviour.
+
+Required checks are read from `GET /repos/{repo}/branches/{branch}` (classic
+protection, read access) and `GET /repos/{repo}/rules/branches/{branch}`
+(rulesets, GHE 3.9+). Either can fail; the gate is then `partial` or `none`,
+and the UI says so rather than reporting nothing required. Do not switch to
+`/branches/{branch}/protection` — it needs admin.

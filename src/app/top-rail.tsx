@@ -30,9 +30,7 @@ export function TopRail({
 
       <div className="rail-divider" />
 
-      <span className="mono" style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
-        {org}
-      </span>
+      <span className="rail-org mono">{org}</span>
 
       <SegmentedNav items={items} value={view} onChange={onChange} />
 
@@ -40,7 +38,8 @@ export function TopRail({
 
       <span className="sync">
         <Dot tone="pass" small />
-        synced {relativeTime(syncedAt)}
+        {/* Hidden visually when compact, never from screen readers: a dot is colour alone. */}
+        <span className="sync-text">synced {relativeTime(syncedAt)}</span>
       </span>
     </header>
   );

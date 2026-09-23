@@ -1,4 +1,6 @@
-import type { Triage, Workflow, WorkflowRun } from './types';
+import { failureStreak } from './failures';
+import { failingRequiredChecks, gateFor } from './merge-gates';
+import type { MergeGate, Triage, Workflow, WorkflowRun } from './types';
 import { TRIAGE_ORDER } from './types';
 
 /** A failure older than this has outlived anyone's memory of seeing it go red. */
@@ -115,16 +117,12 @@ export function classify(wf: Workflow, now: Date = new Date()): Triage {
   }
 
   // 2. Is it failing, and for how long?
-  let consecutiveFailures = 0;
-  for (const run of runs) {
-    if (run.conclusion === 'failure') consecutiveFailures++;
-    else if (run.conclusion === 'running' || run.conclusion === 'cancelled') continue;
-    else break;
-  }
+  const streak = failureStreak(runs);
+  const consecutiveFailures = streak.length;
 
   if (consecutiveFailures > 0) {
     const lastGreen = runs.find((r) => r.conclusion === 'success');
-    const brokeAt = new Date(runs[consecutiveFailures - 1].createdAt);
+    const brokeAt = new Date(streak[consecutiveFailures - 1].createdAt);
     const days = daysBetween(now, brokeAt);
     const silent = days >= SILENT_AFTER_DAYS;
     return {
@@ -179,19 +177,34 @@ function humanInterval(ms: number): string {
 export interface Triaged {
   workflow: Workflow;
   triage: Triage;
+  /** Required checks this workflow is failing. Non-empty: nothing in its repository can merge. */
+  blockingChecks: string[];
 }
 
-/** Severity first, then longest-wrong first. This is the whole point of the dashboard. */
+/**
+ * Merge blockers first, then severity, then longest-wrong first.
+ *
+ * A red required check outranks even a silent failure: it stops every pull
+ * request in the repository, so the cost grows with each person it blocks.
+ */
 export function sortByUrgency(items: Triaged[]): Triaged[] {
   return items.toSorted((a, b) => {
+    const blocking = Number(b.blockingChecks.length > 0) - Number(a.blockingChecks.length > 0);
+    if (blocking !== 0) return blocking;
     const rank = TRIAGE_ORDER.indexOf(a.triage.state) - TRIAGE_ORDER.indexOf(b.triage.state);
     if (rank !== 0) return rank;
     return b.triage.days - a.triage.days;
   });
 }
 
-export function triageAll(workflows: Workflow[], now?: Date): Triaged[] {
-  return sortByUrgency(workflows.map((workflow) => ({ workflow, triage: classify(workflow, now) })));
+export function triageAll(workflows: Workflow[], gates: MergeGate[] = [], now?: Date): Triaged[] {
+  return sortByUrgency(
+    workflows.map((workflow) => ({
+      workflow,
+      triage: classify(workflow, now),
+      blockingChecks: failingRequiredChecks(workflow, gateFor(gates, workflow.repo)),
+    })),
+  );
 }
 
 export function countByState(items: Triaged[]): Record<string, number> {

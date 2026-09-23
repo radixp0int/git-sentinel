@@ -30,7 +30,9 @@ automatically from the path glob; nothing loads them for you here.
 ```bash
 npm run lint       # oxlint; warnings are failures
 npm run typecheck  # tsc -b
+npm test           # vitest run
 ```
 
-Run both before reporting work as done. They also run on pre-commit via husky
-and lint-staged, so skipping them only moves the failure later.
+Run all three before reporting work as done. Lint and typecheck also run on
+pre-commit via husky and lint-staged, so skipping them only moves the failure
+later.

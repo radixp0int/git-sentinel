@@ -1,3 +1,5 @@
+import type { Reviewer } from './types';
+
 const MIN = 60_000;
 const HOUR = 3_600_000;
 const DAY = 86_400_000;
@@ -33,4 +35,15 @@ export function shortRepo(repo: string): string {
 /** ".github/workflows/deploy-prod.yml" -> "deploy-prod.yml" */
 export function workflowFile(path: string): string {
   return path.slice(path.lastIndexOf('/') + 1);
+}
+
+/** "@platform-team" for a team, the login for a person. */
+export function reviewerName(reviewer: Reviewer): string {
+  return reviewer.kind === 'team' ? `@${reviewer.slug}` : reviewer.login;
+}
+
+/** "a", "a and b", "a, b and c" */
+export function joinNames(names: string[]): string {
+  if (names.length <= 1) return names.join('');
+  return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }
