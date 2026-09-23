@@ -1,4 +1,4 @@
-# Git Sentinel
+# Sentinel
 
 A dashboard for GitHub Actions health and review load across 10+ repositories.
 React 19, TypeScript, Vite. No component library, no CSS framework.

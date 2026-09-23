@@ -1,4 +1,4 @@
-# Git Sentinel
+# Sentinel
 
 **The project conventions live in [.github/copilot-instructions.md](.github/copilot-instructions.md).
 Read that file first and treat it as binding.** It is the single source of truth

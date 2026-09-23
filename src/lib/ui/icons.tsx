@@ -37,12 +37,35 @@ export function WarningIcon(props: IconProps) {
   );
 }
 
-export function ShieldIcon(props: IconProps) {
+/**
+ * The app's mark: a ring of elapsed time with a gap where a run should have
+ * been. The dot in the gap is the beat that never arrived, so it takes a
+ * quieter colour than the ring. Same geometry as `public/favicon.svg`, minus
+ * the tile.
+ */
+export function BrandMark({
+  color = 'currentColor',
+  mutedColor = 'currentColor',
+  size = 20,
+}: IconProps & { mutedColor?: string }) {
   return (
-    <Svg {...props}>
-      <path d="M12 2.5 3.8 6v6.2c0 4.7 3.4 8.2 8.2 9.3 4.8-1.1 8.2-4.6 8.2-9.3V6Z" />
-      <path d="M8.6 12.2l2.3 2.4 4.5-4.9" />
-    </Svg>
+    <svg
+      width={size}
+      height={size}
+      viewBox="4 4 24 24"
+      fill="none"
+      aria-hidden="true"
+      style={{ flexShrink: 0 }}
+    >
+      <path
+        d="M25.36 14.35A9.5 9.5 0 1 1 19.25 7.07"
+        stroke={color}
+        strokeWidth="2.6"
+        strokeLinecap="round"
+      />
+      <circle cx="16" cy="16" r="2.6" fill={color} />
+      <circle cx="23.28" cy="9.89" r="1.6" fill={mutedColor} />
+    </svg>
   );
 }
 
