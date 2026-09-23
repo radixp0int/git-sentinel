@@ -1,58 +1,36 @@
-# Git Sentinel — project conventions
+# Git Sentinel
 
-## File names
+**The project conventions live in [.github/copilot-instructions.md](.github/copilot-instructions.md).
+Read that file first and treat it as binding.** It is the single source of truth
+for this repository: file naming, layer boundaries, the colour rule, and the
+rule against `VITE_`-prefixed secrets.
 
-**All file names are lowercase kebab-case.** No exceptions for React components.
+This repository is worked on from GitHub Copilot as well as Claude Code, and the
+Copilot workspace does not read `CLAUDE.md`. Keeping the conventions in one file
+that both tools see is the only way they stay true. So:
 
-```
-src/lib/ui/status-strip.tsx     not StatusStrip.tsx
-src/lib/hooks/use-dashboard-data.ts   not useDashboardData.ts
-src/screens/fleet.tsx           not Fleet.tsx
-```
+- Changing a convention means editing `.github/copilot-instructions.md`, not
+  this file.
+- Do not copy its content here. A second copy is a second thing to go stale.
 
-The file name and the export name are separate things: `status-strip.tsx`
-exports `StatusStrip`, and `use-dashboard-data.ts` exports `useDashboardData`.
-Components and hooks keep their usual PascalCase and camelCase identifiers.
+Folder-scoped rules live in `.github/instructions/*.instructions.md` and apply
+to the paths named in each file's `applyTo` frontmatter:
 
-This is enforced, not just documented — `unicorn/filename-case` is set to
-`kebabCase` in `.oxlintrc.json` and `npm run lint` treats warnings as failures,
-so a PascalCase file fails the pre-commit hook.
+| File | Applies to |
+| --- | --- |
+| `domain.instructions.md` | `src/lib/domain/**` |
+| `ui.instructions.md` | `src/lib/ui/**` |
+| `github-api.instructions.md` | `src/lib/github/**` |
 
-The reason is macOS and Windows: their filesystems are case-insensitive but Git
-is not, so a `Card.tsx` → `card.tsx` rename made casually on a Mac lands in the
-index as two files and breaks the build for everyone on Linux and in CI. Staying
-lowercase means the question never comes up.
-
-Applies to directories too (`src/lib/ui/`, not `src/lib/UI/`).
-
-## Where code goes
-
-- `src/lib/domain/` — pure logic. No React, no `fetch`, no DOM. Triage rules,
-  review grouping, formatting.
-- `src/lib/ui/` — presentational components. Never imports from `screens/` or
-  `app/`.
-- `src/lib/github/` — API access only. Maps GitHub's shapes onto domain types at
-  the boundary so nothing above this layer sees a raw API response.
-- `src/lib/hooks/` — React state and effects that tie the two together.
-- `src/screens/` — composition only. A screen that grows its own logic means
-  that logic belongs in `domain/`.
-- `src/app/` — shell and chrome.
-
-## Colour
-
-Colour carries meaning and never decoration. Components take a `Tone`
-(`pass | fail | stale | flaky | running | neutral`) from `src/lib/ui/tone.ts`,
-never a hex value or a CSS variable. Adding a tone means adding a meaning.
-
-## Secrets
-
-`GITHUB_TOKEN` has no `VITE_` prefix on purpose — that prefix inlines a value
-into the client bundle. Anything secret is read in `vite.config.ts` and attached
-server-side. Never move a credential into a `VITE_`-prefixed variable.
+Read the one that covers the files you are about to touch. Copilot loads these
+automatically from the path glob; nothing loads them for you here.
 
 ## Checks
 
-`npm run lint` (warnings are failures) and `npm run typecheck` both run on
-pre-commit via husky and lint-staged. If a lint rule is wrong for this codebase,
-turn it off in `.oxlintrc.json` with a reason in the README rather than
-scattering inline suppressions.
+```bash
+npm run lint       # oxlint; warnings are failures
+npm run typecheck  # tsc -b
+```
+
+Run both before reporting work as done. They also run on pre-commit via husky
+and lint-staged, so skipping them only moves the failure later.

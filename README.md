@@ -115,8 +115,11 @@ and `card.tsx` as the same file while Git does not, so a casual case-only
 rename lands in the index as two files and breaks Linux and CI. Staying
 lowercase avoids the class of problem.
 
-See [CLAUDE.md](CLAUDE.md) for the rest — layer boundaries, the colour rule,
-and where secrets may not go.
+The rest of the conventions — layer boundaries, the colour rule, and where
+secrets may not go — live in
+[.github/copilot-instructions.md](.github/copilot-instructions.md), with
+folder-scoped rules in `.github/instructions/`. That is the single source of
+truth for both Copilot and Claude Code; `CLAUDE.md` only points at it.
 
 ## Tooling
 
