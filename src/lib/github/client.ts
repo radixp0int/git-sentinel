@@ -5,6 +5,8 @@
  * See vite.config.ts — the browser never holds a credential.
  */
 
+import type { TokenStatus } from '../domain/setup';
+
 const REST = '/gh/rest';
 const GRAPHQL = '/gh/graphql';
 
@@ -42,12 +44,23 @@ export async function graphql<T>(
   return body.data;
 }
 
-/** True when the proxy has a token to work with. */
-export async function isConfigured(): Promise<boolean> {
+/**
+ * What the proxy's token is good for.
+ *
+ * The proxy answers 501 itself when GITHUB_TOKEN is unset (see vite.config.ts);
+ * GitHub answers 401 to a token it does not accept. A 200 only counts if the
+ * body is GitHub's rate-limit document — a static host serving index.html for
+ * every path also says 200.
+ */
+export async function checkToken(): Promise<TokenStatus> {
   try {
     const res = await fetch(`${REST}/rate_limit`);
-    return res.ok;
+    if (res.status === 501) return 'missing';
+    if (res.status === 401) return 'rejected';
+    if (!res.ok) return 'unreachable';
+    const body: unknown = await res.json().catch(() => null);
+    return typeof body === 'object' && body !== null && 'resources' in body ? 'ok' : 'unreachable';
   } catch {
-    return false;
+    return 'unreachable';
   }
 }

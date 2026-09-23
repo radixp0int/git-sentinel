@@ -13,7 +13,11 @@ wrong* and treats "stale" as its own state, separate from "failing".
 npm install && npm run dev
 ```
 
-Opens on <http://localhost:5273> with sample data.
+Opens on <http://localhost:5273> with sample data. Until it can reach GitHub, a
+setup dialog explains what is missing — no token, a token GitHub rejects, no
+proxy, or no repositories — with the steps for that case and a link to GitHub's
+token docs. Dismissing it is remembered per problem in `localStorage`, so a new
+problem still gets its own prompt; the sample-data banner reopens it.
 
 To point it at real repositories, copy `.env.example` to `.env.local` and fill in:
 

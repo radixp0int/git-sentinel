@@ -1,6 +1,7 @@
 export { Badge } from './badge';
 export { Banner } from './banner';
 export { Card, CardNote, Section, SectionHead } from './card';
+export { Dialog } from './dialog';
 export { Dot } from './dot';
 export { Cell, Empty, List, ListGroup, ListHead, ListRow, StackedCell } from './list';
 export { Avatar, DiffStat, Meta, PullRequestRef, WorkflowName } from './meta';

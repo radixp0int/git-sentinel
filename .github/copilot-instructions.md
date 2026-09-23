@@ -60,6 +60,11 @@ read in `vite.config.ts` and attached server-side by the `/gh` proxy.
 Never move a credential into a `VITE_`-prefixed variable, and never call
 `api.github.com` directly from client code — go through `/gh`.
 
+The setup dialog explains where the token goes; it must never offer a field to
+paste one, and `localStorage` holds only which setup problem was dismissed
+(`git-sentinel:setup-dismissed`). Anything in browser storage is readable by
+every script on the page.
+
 ## Style
 
 - Functional components, no classes. Hooks at the top level only.
