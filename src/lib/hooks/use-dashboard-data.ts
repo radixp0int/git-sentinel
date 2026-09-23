@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { fetchFleet, fetchOwnPullRequests, fetchReviewQueue, isConfigured } from '../github';
+import { checkToken, fetchFleet, fetchOwnPullRequests, fetchReviewQueue } from '../github';
+import { setupProblem, type SetupProblem } from '../domain/setup';
 import { mockGates, mockOwnPullRequests, mockPullRequests, mockWorkflows } from '../mock';
 import type { MergeGate, OwnPullRequest, PullRequest, Workflow } from '../domain/types';
 
@@ -11,8 +12,10 @@ export interface DashboardData {
   gates: MergeGate[];
   pullRequests: PullRequest[];
   ownPullRequests: OwnPullRequest[];
-  /** False when we are showing the sample fleet because no token is configured. */
+  /** False when we are showing the sample fleet because setup is incomplete. */
   live: boolean;
+  /** What is missing for live data. Null until the first check, and once set up. */
+  setup: SetupProblem | null;
   error: string | null;
   syncedAt: Date;
   refresh: () => void;
@@ -29,6 +32,7 @@ export function useDashboardData(repos: string[]): DashboardData {
   const [pullRequests, setPullRequests] = useState<PullRequest[]>(mockPullRequests);
   const [ownPullRequests, setOwnPullRequests] = useState<OwnPullRequest[]>(mockOwnPullRequests);
   const [live, setLive] = useState(false);
+  const [setup, setSetup] = useState<SetupProblem | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [syncedAt, setSyncedAt] = useState(() => new Date());
 
@@ -36,7 +40,9 @@ export function useDashboardData(repos: string[]): DashboardData {
 
   const load = useCallback(async () => {
     const list = key ? key.split(',') : [];
-    if (list.length === 0 || !(await isConfigured())) {
+    const problem = setupProblem(await checkToken(), list.length);
+    setSetup(problem);
+    if (problem) {
       setLive(false);
       setSyncedAt(new Date());
       return;
@@ -77,6 +83,7 @@ export function useDashboardData(repos: string[]): DashboardData {
     pullRequests,
     ownPullRequests,
     live,
+    setup,
     error,
     syncedAt,
     refresh: () => void load(),
