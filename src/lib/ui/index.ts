@@ -7,7 +7,7 @@ export { Avatar, DiffStat, Meta, PullRequestRef, WorkflowName } from './meta';
 export { SegmentedNav, type NavItem } from './segmented-nav';
 export { StatTile, TileGrid } from './stat-tile';
 export { StatusStrip } from './status-strip';
-export { BellIcon, LockIcon, PullRequestIcon, ShieldIcon, WarningIcon } from './icons';
+export { BellIcon, BrandMark, LockIcon, PullRequestIcon, WarningIcon } from './icons';
 export {
   ageTone,
   CONCLUSION_TONE,

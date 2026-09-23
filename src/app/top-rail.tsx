@@ -1,4 +1,4 @@
-import { Dot, SegmentedNav, ShieldIcon, type NavItem } from '../lib/ui';
+import { BrandMark, Dot, SegmentedNav, type NavItem } from '../lib/ui';
 import { relativeTime } from '../lib/domain';
 
 export type View = 'fleet' | 'reviews';
@@ -24,8 +24,8 @@ export function TopRail({
   return (
     <header className="rail">
       <div className="brand">
-        <ShieldIcon color="var(--accent)" size={20} />
-        <span className="brand-name">GIT SENTINEL</span>
+        <BrandMark color="var(--accent)" mutedColor="var(--text-faint)" size={20} />
+        <span className="brand-name">SENTINEL</span>
       </div>
 
       <div className="rail-divider" />

@@ -1,10 +1,10 @@
-# Git Sentinel
+# Sentinel
 
 A dashboard for watching GitHub Actions and review load across a fleet of repositories.
 
 Built around one observation: a red/green grid does not catch the failure that
 actually hurts. A workflow that **stops running** has no red run to show — its last
-recorded run is usually green. So Git Sentinel sorts by *how long something has been
+recorded run is usually green. So Sentinel sorts by *how long something has been
 wrong* and treats "stale" as its own state, separate from "failing".
 
 ## Running it
