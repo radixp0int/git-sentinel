@@ -14,7 +14,8 @@ const ORG = import.meta.env.VITE_GITHUB_ORG ?? 'acme-corp';
 
 export default function App() {
   const [view, setView] = useState<View>('fleet');
-  const { workflows, pullRequests, live, error, syncedAt } = useDashboardData(REPOS);
+  const { workflows, gates, pullRequests, ownPullRequests, live, error, syncedAt } =
+    useDashboardData(REPOS);
 
   const waiting = pullRequests.filter((pr) => pr.state === 'waiting').length;
 
@@ -42,9 +43,9 @@ export default function App() {
       )}
 
       {view === 'fleet' ? (
-        <Fleet workflows={workflows} />
+        <Fleet workflows={workflows} gates={gates} />
       ) : (
-        <Reviews pullRequests={pullRequests} />
+        <Reviews pullRequests={pullRequests} ownPullRequests={ownPullRequests} />
       )}
     </div>
   );

@@ -1,4 +1,4 @@
-import type { Conclusion, TriageState } from '../domain/types';
+import type { Conclusion, OwnPullRequestState, TriageState } from '../domain/types';
 
 /**
  * Every coloured thing in the app resolves to one of these.
@@ -103,4 +103,22 @@ export function ageTone(days: number): Tone {
   if (days >= 7) return 'fail';
   if (days >= 3) return 'stale';
   return 'neutral';
+}
+
+/**
+ * Your own pull request: red when it cannot move until you fix it, amber when
+ * a reviewer is waiting on you, green when all that is left is merging. A pull
+ * request waiting on reviewers gets louder with age, like any other wait.
+ */
+export function ownPullRequestTone(state: OwnPullRequestState, days: number): Tone {
+  switch (state) {
+    case 'checks-failing':
+      return 'fail';
+    case 'changes-requested':
+      return 'stale';
+    case 'approved':
+      return 'pass';
+    case 'awaiting-review':
+      return ageTone(days);
+  }
 }

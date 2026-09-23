@@ -43,12 +43,12 @@ forwarding in front of the built assets before hosting this anywhere.
 
 ## Triage rules
 
-All of it lives in [`src/lib/triage.ts`](src/lib/triage.ts) as pure functions, so the
+All of it lives in [`src/lib/domain/triage.ts`](src/lib/domain/triage.ts) as pure functions, so the
 thresholds are one edit away and the logic is testable without the API.
 
 | State | Rule | Constant |
 | --- | --- | --- |
-| `silent` | Failing 3+ days. Ranked above everything. | `SILENT_AFTER_DAYS` |
+| `silent` | Failing 3+ days. Ranked above everything but merge blockers. | `SILENT_AFTER_DAYS` |
 | `stale` | No run in 2+ expected windows, or workflow disabled. | `STALE_MISSED_WINDOWS` |
 | `failing` | Failing, but recently. | — |
 | `flaky` | Passing now, but >20% of the window failed. | `FLAKY_THRESHOLD` |
@@ -58,10 +58,39 @@ Cadence comes from the workflow's `cron:` when it has one, otherwise from the me
 gap between its past runs — which also catches push-triggered workflows that have
 gone quiet.
 
+### Where it breaks
+
+For a failing workflow, the jobs of the newest three runs in its failure streak
+(`FAILURE_SAMPLE`) are looked up to find the failing step. The same step every
+time points at the code; a different step each time points at something shared —
+a runner, a registry, a secret — and the *Common failure points* card groups
+failing steps across the fleet to make that visible. A finished attempt's jobs
+never change, so each is fetched once and cached.
+
+### Merge gates
+
+Each repository's required checks are read from branch protection and, on GHE
+3.9+, rulesets. A workflow whose failing job is a required check is badged
+**BLOCKS MERGES** and sorted to the top: nothing in that repository can merge
+until it is green. If the rules cannot be read the card says so rather than
+claiming nothing is required.
+
 ## Reviews
 
 One GraphQL search per bucket, including each PR's check rollup so PRs whose checks
 are red get *parked* rather than shown as actionable.
+
+The wait is counted from when your review was **requested**, read from the PR's
+timeline, not from when the PR was opened — a PR opened a month ago and assigned
+to you this morning is new work. When you were asked through a team, the card
+shows which. If several of your teams are pending, the longest-waiting request is
+used: finding your actual team would cost a membership query per team.
+
+### Your open pull requests
+
+One more search (`author:@me`, drafts excluded) splits your own PRs by whose move
+it is: red checks, an unanswered change request, or an approval waiting to be
+merged are yours; everything else is waiting on reviewers, oldest first.
 
 The queue uses `user-review-requested:@me` rather than `review-requested:@me`, because
 the former includes PRs routed to you through a team — on Enterprise, usually most of
@@ -129,6 +158,8 @@ truth for both Copilot and Claude Code; `CLAUDE.md` only points at it.
 | `npm run lint` | oxlint, warnings are failures |
 | `npm run lint:fix` | oxlint with autofix |
 | `npm run typecheck` | `tsc -b` |
+| `npm test` | Vitest, once |
+| `npm run test:watch` | Vitest, watching |
 | `npm run build` | Typecheck then bundle |
 
 A husky `pre-commit` hook runs lint-staged (`oxlint --fix --deny-warnings` on
@@ -146,6 +177,5 @@ Three lint rules are switched off in `.oxlintrc.json`, each for a reason:
 - **Alerting.** The dashboard is a backstop; it only helps when you look at it. The
   rules screen is designed but not implemented, and sending anywhere (Slack, email)
   needs a process that runs without a browser open.
-- Run detail view — failure logs, job steps, re-run.
+- Run detail view — failure logs and re-run. The failing step is shown; the log is not.
 - The compact always-on panel.
-- Tests. `triage.ts` is pure and is the obvious first target.

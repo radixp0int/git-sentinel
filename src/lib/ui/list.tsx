@@ -49,3 +49,31 @@ export function Cell({
 export function Empty({ children }: { children: ReactNode }) {
   return <p className="empty">{children}</p>;
 }
+
+/** A labelled divider inside a list, for splitting one list into groups. */
+export function ListGroup({ label, count }: { label: string; count: number }) {
+  return (
+    <div className="list-group">
+      <span className="eyebrow">{label}</span>
+      <span className="mono list-group-count">{count}</span>
+    </div>
+  );
+}
+
+/** A right-aligned time with a quieter second line: "requested 4d ago" over "opened 3w ago". */
+export function StackedCell({
+  width,
+  main,
+  sub,
+}: {
+  width: number;
+  main: ReactNode;
+  sub: ReactNode;
+}) {
+  return (
+    <div className="stacked-cell" style={{ width }}>
+      <div className="stacked-main">{main}</div>
+      <div className="stacked-sub">{sub}</div>
+    </div>
+  );
+}

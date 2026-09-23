@@ -13,6 +13,9 @@ green. Everything here sorts by *how long something has been wrong*, and
 Keep that idea intact. A change that reorders the fleet view alphabetically, or
 that collapses `stale` into `failing`, defeats the point of the tool.
 
+The one thing ranked above age is a red **required check**: it stops every pull
+request in its repository, so the fleet view puts merge blockers first.
+
 ## File names
 
 Lowercase kebab-case, components included. `status-strip.tsx` exports
@@ -70,16 +73,23 @@ Never move a credential into a `VITE_`-prefixed variable, and never call
 - Empty states say what being empty means — an empty review queue is good news
   and should read like it.
 
+## Tests
+
+Vitest, colocated as `*.test.ts` beside the file under test. Shared factories
+live in `src/test/fixtures.ts`; every test runs at its fixed `NOW` so relative
+times are stable. Domain tests call the functions directly; GitHub-layer tests
+mock `./client` and assert on the mapping and on which requests are made — the
+request count is part of the behaviour, given the rate limits.
+
 ## Before you finish
 
 ```bash
 npm run lint       # oxlint; warnings are failures
 npm run typecheck  # tsc -b
+npm test           # vitest run
 ```
 
 Both run on pre-commit via husky and lint-staged. If a lint rule is wrong for
 this codebase, turn it off in `.oxlintrc.json` and record the reason in the
 README rather than scattering inline suppressions.
 
-There are no tests yet. `src/lib/domain/triage.ts` is pure and is the obvious
-first place to add them.

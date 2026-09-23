@@ -11,21 +11,46 @@ import {
   Dot,
   Empty,
   List,
+  ListGroup,
   ListRow,
   Meta,
+  ownPullRequestTone,
   PullRequestRef,
   Section,
+  StackedCell,
   StatTile,
   TileGrid,
 } from '../lib/ui';
 import {
+  groupOwnPullRequests,
   groupReviews,
   isSoleReviewer,
+  joinNames,
+  ownPullRequestLabel,
+  ownPullRequestSince,
   relativeTime,
+  requestRoutes,
+  reviewerName,
   shortRepo,
+  stateDays,
   waitingDays,
+  waitingLabel,
+  type OwnPullRequest,
   type PullRequest,
+  type Reviewer,
 } from '../lib/domain';
+
+/** "via @platform-team", "re-requested directly" */
+function Route({ via, again }: { via: Reviewer; again: boolean }) {
+  const verb = again ? 're-requested' : 'requested';
+  return via.kind === 'team' ? (
+    <span>
+      {again ? 're-requested via' : 'via'} <span className="mono">{reviewerName(via)}</span>
+    </span>
+  ) : (
+    <span>{verb} directly</span>
+  );
+}
 
 function WaitingRow({ pr }: { pr: PullRequest }) {
   const days = waitingDays(pr);
@@ -36,17 +61,13 @@ function WaitingRow({ pr }: { pr: PullRequest }) {
 
       <div className="grow">
         <div className="name-line">
-          <span
-            className="truncate"
-            style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-bright)' }}
-          >
-            {pr.title}
-          </span>
-          <Badge tone={ageTone(days)}>{days}d waiting</Badge>
+          <span className="truncate row-title">{pr.title}</span>
+          <Badge tone={ageTone(days)}>{waitingLabel(days)}</Badge>
         </div>
         <Meta>
           <PullRequestRef repo={shortRepo(pr.repo)} number={pr.number} />
           <span>{pr.author}</span>
+          {pr.requestedVia && <Route via={pr.requestedVia} again={pr.reRequested} />}
           <DiffStat additions={pr.additions} deletions={pr.deletions} />
           <span>{pr.changedFiles} files</span>
         </Meta>
@@ -54,9 +75,11 @@ function WaitingRow({ pr }: { pr: PullRequest }) {
 
       {isSoleReviewer(pr) && <Badge tone="fail">SOLE REVIEWER</Badge>}
 
-      <Cell width={92} muted>
-        updated {relativeTime(pr.updatedAt)}
-      </Cell>
+      <StackedCell
+        width={112}
+        main={`requested ${relativeTime(pr.reviewRequestedAt ?? pr.createdAt)}`}
+        sub={`opened ${relativeTime(pr.createdAt)}`}
+      />
 
       <a className="btn btn-primary" href={pr.htmlUrl} target="_blank" rel="noreferrer">
         Review
@@ -84,9 +107,103 @@ function CompactRow({ pr, note }: { pr: PullRequest; note: string }) {
   );
 }
 
-export function Reviews({ pullRequests }: { pullRequests: PullRequest[] }) {
+/** What your pull request is waiting on, in the terms of its state. */
+function OwnMeta({ pr }: { pr: OwnPullRequest }) {
+  const ref = <PullRequestRef repo={shortRepo(pr.repo)} number={pr.number} />;
+
+  switch (pr.state) {
+    case 'checks-failing':
+      return (
+        <Meta>
+          {ref}
+          <span>
+            {pr.failingCheck ? <span className="mono">{pr.failingCheck}</span> : 'a check'} is red
+          </span>
+          <span>parked in reviewers' queues until green</span>
+        </Meta>
+      );
+    case 'changes-requested':
+      return (
+        <Meta>
+          {ref}
+          <span>{pr.changesRequestedBy} asked for changes</span>
+          <span>no push since</span>
+        </Meta>
+      );
+    case 'approved':
+      return (
+        <Meta>
+          {ref}
+          {pr.approvedBy.length > 0 && <span>approved by {joinNames(pr.approvedBy)}</span>}
+          {pr.checksState === 'success' && <span>checks green</span>}
+        </Meta>
+      );
+    case 'awaiting-review':
+      return (
+        <Meta>
+          {ref}
+          {pr.pending.length > 0 && (
+            <span>
+              {pr.reRequested ? 're-requested' : 'requested'} from{' '}
+              {joinNames(pr.pending.map(reviewerName))}
+            </span>
+          )}
+          {pr.reviewers > 0 && (
+            <span>
+              {pr.reviewed} of {pr.reviewers} reviewed
+            </span>
+          )}
+        </Meta>
+      );
+  }
+}
+
+function OwnRow({ pr }: { pr: OwnPullRequest }) {
+  return (
+    <ListRow>
+      <div className="grow">
+        <div className="name-line">
+          <span className="truncate row-title">{pr.title}</span>
+          <Badge tone={ownPullRequestTone(pr.state, stateDays(pr))}>
+            {ownPullRequestLabel(pr)}
+          </Badge>
+        </div>
+        <OwnMeta pr={pr} />
+      </div>
+
+      <StackedCell
+        width={112}
+        main={ownPullRequestSince(pr)}
+        sub={`opened ${relativeTime(pr.createdAt)}`}
+      />
+
+      <a className="btn btn-sm" href={pr.htmlUrl} target="_blank" rel="noreferrer">
+        Open
+      </a>
+    </ListRow>
+  );
+}
+
+function routeLabel(via: Reviewer | null): string {
+  if (!via) return 'Route not recorded';
+  return via.kind === 'team' ? reviewerName(via) : 'Asked for you by name';
+}
+
+export function Reviews({
+  pullRequests,
+  ownPullRequests,
+}: {
+  pullRequests: PullRequest[];
+  ownPullRequests: OwnPullRequest[];
+}) {
   const groups = useMemo(() => groupReviews(pullRequests), [pullRequests]);
+  const own = useMemo(() => groupOwnPullRequests(ownPullRequests), [ownPullRequests]);
+  const routes = useMemo(() => requestRoutes(groups.waiting), [groups.waiting]);
   const oldest = groups.waiting[0];
+  const ownNote =
+    ownPullRequests.length > 0
+      ? ` · ${own.yourMove.length} of your ${ownPullRequests.length} open PRs need you next`
+      : null;
 
   return (
     <div className="page">
@@ -105,6 +222,7 @@ export function Reviews({ pullRequests }: { pullRequests: PullRequest[] }) {
                   </span>
                 </>
               )}
+              {ownNote}
             </p>
           </div>
         </div>
@@ -148,6 +266,32 @@ export function Reviews({ pullRequests }: { pullRequests: PullRequest[] }) {
           </List>
         </Section>
 
+        <Section
+          title="Your open pull requests"
+          hint="your move first · then longest wait · drafts hidden"
+        >
+          <List>
+            {ownPullRequests.length === 0 ? (
+              <Empty>You have no open pull requests. Nothing of yours is waiting on anyone.</Empty>
+            ) : (
+              <>
+                {own.yourMove.length > 0 && (
+                  <ListGroup label="Your move" count={own.yourMove.length} />
+                )}
+                {own.yourMove.map((pr) => (
+                  <OwnRow key={`${pr.repo}#${pr.number}`} pr={pr} />
+                ))}
+                {own.waiting.length > 0 && (
+                  <ListGroup label="Waiting on reviewers" count={own.waiting.length} />
+                )}
+                {own.waiting.map((pr) => (
+                  <OwnRow key={`${pr.repo}#${pr.number}`} pr={pr} />
+                ))}
+              </>
+            )}
+          </List>
+        </Section>
+
         <div className="two-up">
           <Section title="You asked for changes">
             <List>
@@ -176,6 +320,21 @@ export function Reviews({ pullRequests }: { pullRequests: PullRequest[] }) {
       </main>
 
       <aside className="col-side">
+        {routes.length > 0 && (
+          <Card title="Where requests come from">
+            <CardNote>
+              Waiting counts from the request that reached you, directly or through a team you are
+              on — not from when the pull request was opened.
+            </CardNote>
+            {routes.map((route) => (
+              <div key={routeLabel(route.via)} className="side-row side-row-main">
+                <span className="grow truncate mono">{routeLabel(route.via)}</span>
+                <span className="mono">{route.count}</span>
+              </div>
+            ))}
+          </Card>
+        )}
+
         <Card title="Parked, not ready">
           <CardNote>
             Requested from you, but the checks are red. Reviewing now means reviewing twice.

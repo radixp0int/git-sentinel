@@ -38,6 +38,12 @@
   background: var(--line-strong);
 }
 
+.rail-org {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 .rail-spacer {
   flex-grow: 1;
 }
@@ -48,6 +54,7 @@
   gap: 6px;
   font-size: 11.5px;
   color: var(--text-faint);
+  white-space: nowrap;
 }
 
 .page {
@@ -187,6 +194,37 @@ h3.card-title {
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 600;
+}
+
+/*
+ * Compact rail: below this width the org name, wordmark and sync wording wrap
+ * onto two lines and push the nav around. Keep what you navigate with — the
+ * mark, the tabs and their counts — and drop the details.
+ */
+@media (max-width: 900px) {
+  .rail {
+    gap: 12px;
+    padding: 0 16px;
+  }
+
+  .brand-name,
+  .rail-divider,
+  .rail-org {
+    display: none;
+  }
+
+  .sync-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .nav button {
+    padding: 0 10px;
+  }
 }
 
 .btn {
@@ -358,6 +396,9 @@ h3.card-title {
 
 .chip {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 2px 7px;
   border-radius: var(--r-pill);
   font-size: 10.5px;
@@ -486,4 +527,137 @@ h3.card-title {
   font-weight: 600;
   line-height: 1;
   color: var(--text-bright);
+}
+
+/* ---------------------------------------------------------------- details */
+
+.eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-ghost);
+}
+
+.detail-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+.inline-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.step {
+  padding: 2px 7px;
+  border-radius: var(--r-sm);
+  background: var(--raised);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.runs {
+  margin-top: 10px;
+  background: var(--panel-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.runs summary {
+  padding: 7px 12px;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.runs-table {
+  display: grid;
+  grid-template-columns: 80px 80px minmax(0, 1fr);
+  column-gap: 14px;
+  row-gap: 6px;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--line-soft);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.runs-head {
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-ghost);
+}
+
+.list-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--panel-sunken);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.list-group .eyebrow {
+  color: var(--text-muted);
+}
+
+.list-group-count {
+  font-size: 11px;
+  color: var(--text-ghost);
+}
+
+.stacked-cell {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.stacked-main {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.stacked-sub {
+  margin-top: 2px;
+  font-size: 10.5px;
+  color: var(--text-ghost);
+}
+
+.row-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+.side-row {
+  padding: 9px 0;
+  border-top: 1px solid var(--line-soft);
+  font-size: 12px;
+}
+
+.side-row:last-child {
+  padding-bottom: 0;
+}
+
+.side-row-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.side-row-sub {
+  margin-top: 3px;
+  padding-left: 15px;
+  font-size: 11px;
+  color: var(--text-ghost);
 }
