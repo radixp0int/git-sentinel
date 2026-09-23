@@ -1,12 +1,12 @@
-export { Badge } from './Badge';
-export { Banner } from './Banner';
-export { Card, CardNote, Section, SectionHead } from './Card';
-export { Dot } from './Dot';
-export { Cell, Empty, List, ListHead, ListRow } from './List';
-export { Avatar, DiffStat, Meta, PullRequestRef, WorkflowName } from './Meta';
-export { SegmentedNav, type NavItem } from './SegmentedNav';
-export { StatTile, TileGrid } from './StatTile';
-export { StatusStrip } from './StatusStrip';
+export { Badge } from './badge';
+export { Banner } from './banner';
+export { Card, CardNote, Section, SectionHead } from './card';
+export { Dot } from './dot';
+export { Cell, Empty, List, ListHead, ListRow } from './list';
+export { Avatar, DiffStat, Meta, PullRequestRef, WorkflowName } from './meta';
+export { SegmentedNav, type NavItem } from './segmented-nav';
+export { StatTile, TileGrid } from './stat-tile';
+export { StatusStrip } from './status-strip';
 export { BellIcon, PullRequestIcon, ShieldIcon, WarningIcon } from './icons';
 export {
   ageTone,

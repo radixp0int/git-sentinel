@@ -82,7 +82,7 @@ src/
       tone.ts    The colour system — see below
     domain/      types, triage, reviews, format. Pure, no React, no fetch.
     github/      client (transport) + workflows + reviews
-    hooks/       useDashboardData — loading, polling, sample-data fallback
+    hooks/       use-dashboard-data — loading, polling, sample-data fallback
     mock/        Sample fleet
   screens/       Fleet, Reviews
   app/           App shell and top rail
@@ -102,6 +102,21 @@ either screen knowing about the other.
 
 Adding a sixth tone means adding a sixth *meaning*. Colour is never decorative
 here.
+
+## Conventions
+
+File names are **lowercase kebab-case**, components included:
+`status-strip.tsx` exports `StatusStrip`. Enforced by
+`unicorn/filename-case` in `.oxlintrc.json`, so a PascalCase file fails the
+pre-commit hook rather than merely being frowned at.
+
+The reason is case-insensitive filesystems: macOS and Windows treat `Card.tsx`
+and `card.tsx` as the same file while Git does not, so a casual case-only
+rename lands in the index as two files and breaks Linux and CI. Staying
+lowercase avoids the class of problem.
+
+See [CLAUDE.md](CLAUDE.md) for the rest — layer boundaries, the colour rule,
+and where secrets may not go.
 
 ## Tooling
 

@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { TopRail, type View } from './TopRail';
+import { TopRail, type View } from './top-rail';
 import { Banner } from '../lib/ui';
-import { useDashboardData } from '../lib/hooks/useDashboardData';
-import { Fleet } from '../screens/Fleet';
-import { Reviews } from '../screens/Reviews';
+import { useDashboardData } from '../lib/hooks/use-dashboard-data';
+import { Fleet } from '../screens/fleet';
+import { Reviews } from '../screens/reviews';
 
 const REPOS = (import.meta.env.VITE_GITHUB_REPOS ?? '')
   .split(',')

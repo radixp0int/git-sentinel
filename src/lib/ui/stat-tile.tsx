@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { TONE, type Tone } from './tone';
-import { Dot } from './Dot';
+import { Dot } from './dot';
 
 /**
  * A count with a label and a line of context.
